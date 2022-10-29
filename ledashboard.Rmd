@@ -1,0 +1,165 @@
+---
+title: "Banque de la Republique d'Haiti"
+author : "by: Brutus Doree / Bernadin Ritza"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(ggplot2)
+library(shiny)
+library(readxl)
+library(DT)
+library(dplyr)
+library(shinydisconnect)
+library(rsconnect)
+library(rvest)
+library(dplyr)
+library(ggiraph)
+library(dygraphs)
+
+
+```
+
+```{r}
+url1<-"https://www.brh.ht/taux-affiches-par-les-banques-et-les-agents-de-change-2/"
+banqueHTMLdata<-read_html(url1)
+banqueData<-banqueHTMLdata%>%html_nodes("div.row")%>%.[[5]]%>%html_table
+tauxparbanque<-slice(banqueData,c(2:8))
+
+
+url2<-"https://www.brh.ht/taux-du-jour/"
+jourHTMLdata<-read_html(url2)
+jourData<-jourHTMLdata%>%html_nodes("div.row")%>%.[[5]]%>%html_table
+tauxdujour<-slice(jourData,c(2,7))
+
+```
+
+
+
+# Taux par banque
+row {data-width=180}
+-------------------------------------------------------------------
+### Rstudio
+```{r}
+valueBox(1, color="yellow", icon="fa-clock")
+```
+
+
+### Temperature
+```{r}
+gauge(27, min = 0, max = 100, gaugeSectors(
+  success = c(80, 100), warning = c(40, 79), danger = c(0, 39)
+))
+```
+### Celsius
+
+```{r}
+gauge(60, min = 0, max = 100, gaugeSectors(
+  success = c(80, 100), warning = c(40, 79), danger = c(0, 39)
+))
+```
+
+### Succes
+```{r}
+valueBox(2, color="green", icon="fa-twitter")
+```
+
+
+
+column {data-width=500 .tabset}
+-------------------------------------------------------------------
+
+
+
+### Graphique: Banque/Achat
+```{r}
+a<-ggplot(tauxparbanque,aes(x=X2, y=X1))+geom_point_interactive(aes(tooltip= "Banque/Achat", data_id = "Banque", size=10), shape=66, color="orange",size=14)+labs(x="Achats", y="Categorie de banque")
+ggiraph(code=print(a), hover_css = "cusrsor:pointer;fill:white;stroke:purple;stroke-width:2pt;", zoom_max=5)
+```
+
+### Graphique: Banque/Vente
+```{r}
+b<-ggplot(tauxparbanque, aes(x=X3, y=X1, group="Banque", tooltip="Banque/Ventes",data_id="Banque"))+geom_line_interactive(size=3, color="red")+xlab("VENTES")+ylab("CATEGORIE DE BANQUE")
+ggiraph(code=print(b),hover_css = "cusrsor:pointer;fill:white;stroke:blue;stroke-width:2pt;" ,zoom_max=5)
+```
+
+### Graphique: Banque/Spreapds
+```{r}
+c<-ggplot(tauxparbanque, aes(x=X4, y=X1, tooltip="Banque/Spread", fill=X1, data_id="Banque"))+geom_bin2d_interactive(position="dodge")+xlab("SPREAD")+ylab("Categorie de Banque")
+ggiraph(code=print(c), zoom_max=5,hover_css = "cusrsor:pointer;fill:purple;stroke:yellow;stroke-width:2pt;")
+```
+
+### Tableau interatif
+
+```{r}
+datatable(banqueData,
+          extensions="Buttons",
+          options = list(
+            dom ="Bfrtip",
+            buttons = c("copy", "print","excel", "csv")
+          ))
+```
+
+# Taux par marche informel/Taux de reference
+
+row{data-width=180}
+-------------------------------------------------------------------
+### Information
+```{r}
+valueBox(3, color="red", icon="fa-table")
+```
+
+
+### Success
+```{r}
+gauge(80, min = 0, max = 100, gaugeSectors(
+  success = c(80, 100), warning = c(40, 79), danger = c(0, 39)
+))
+```
+### M
+```{r}
+dygraph(ldeaths)
+```
+
+
+row {.tabset}
+-----------------------------------------------------------------------
+
+
+### Graphique: Secteurs/Achats
+
+```{r}
+d<-ggplot(tauxdujour, aes(x=X2, y=X1,tooltip="Achat",data_id="Achat" ))+geom_bar_interactive(stat="identity")+labs(x="ACHATS", y="Secteurs")+facet_wrap(~X1)
+ggiraph(code=print(d), zoom_max=5,hover_css = "cusrsor:pointer;fill:pink;stroke:blue;stroke-width:2pt;")
+
+```
+
+### Graphique: Secteurs/Ventes
+```{r}
+e<-ggplot(tauxdujour, aes(x=X3, y=X1, fill=X1,tooltip="Ventes",data_id="Ventes" ))+geom_bar_interactive(stat="identity")+labs(x="VENTES", y="Secteurs")
+ggiraph(code=print(e), zoom_max=5,hover_css = "cusrsor:pointer;fill:yellow;stroke:blue;stroke-width:2pt;")
+
+```
+
+### Graphique :Secteurs/Spread
+```{r}
+f<-ggplot(tauxdujour, aes(x=X4, y=X1,tooltip="Spread",data_id="Spread", ))+geom_boxplot_interactive(size=6, color="green", shape=7)+labs(x="Spread", y="Secteurs")
+ggiraph(code=print(f), zoom_max=5,hover_css = "cusrsor:pointer;fill:violet;stroke:blue;stroke-width:2pt;")
+```
+
+### Tableau interactif
+
+```{r}
+datatable(jourData,
+          extensions="Buttons",
+          options = list(
+            dom ="Bfrtip",
+            buttons = c("copy", "print","excel","csv")
+          ))
+```
